@@ -79,4 +79,51 @@ class EDMLoss:
         loss = weight * ((D_yn - y) ** 2)
         return loss
 
+@persistence.persistent_class
+class EDMLoss_with_ISM:
+    def __init__(self, P_mean=-1.2, P_std=1.2, sigma_data=0.5, ism_weight=0.0, ism_rng_mean=-2.0, ism_dy=1e-5):
+        self.P_mean = P_mean
+        self.P_std = P_std
+        self.sigma_data = sigma_data
+        self.ism_weight = ism_weight
+        self.ism_rng_mean = ism_rng_mean
+        self.ism_dy = ism_dy
+
+    def __call__(self, net, images, labels=None, augment_pipe=None):
+        rnd_normal = torch.randn([images.shape[0], 1, 1, 1], device=images.device)
+        sigma = (rnd_normal * self.P_std + self.P_mean).exp()
+
+        weight = (sigma ** 2 + self.sigma_data ** 2) / (sigma * self.sigma_data) ** 2
+        y, augment_labels = augment_pipe(images) if augment_pipe is not None else (images, None)
+        n = torch.randn_like(y) * sigma
+        D_yn = net(y + n, sigma, labels, augment_labels=augment_labels)
+
+        # compute loss_edm
+        loss_edm = weight * ((D_yn - y) ** 2)
+
+        # compute loss_ism
+        loss_ism = torch.zeros_like(loss_edm)
+        if self.ism_weight != 0.0:
+            rnd_normal_ism = torch.randn([images.shape[0], 1, 1, 1], device=images.device) + self.ism_rng_mean
+            sigma_ism = (rnd_normal_ism * self.P_std + self.P_mean).exp()
+
+            weight_ism = (sigma_ism ** 2 + self.sigma_data ** 2) / (sigma_ism * self.sigma_data) ** 2
+            y_ism, augment_labels_ism = augment_pipe(images) if augment_pipe is not None else (images, None)
+
+            n_ism = torch.randn_like(y_ism) * sigma_ism
+            D_yn_ism = net(y_ism + n_ism, sigma_ism, labels, augment_labels=augment_labels_ism)
+
+            loss_ism_first = torch.sum(((D_yn_ism - (y_ism)) ** 2))
+
+            y_tilde = y_ism + self.ism_dy
+            D_yn_tilde = net(y_tilde + n_ism, sigma, labels, augment_labels=augment_labels)
+            nabla_D_yn = (D_yn_tilde - D_yn) / self.ism_dy
+            weight_ism_second = 2 * sigma_ism ** 2
+
+            loss_ism_second = weight_ism_second * nabla_D_yn
+
+            loss_ism = self.ism_weight * weight_ism * (loss_ism_first + loss_ism_second)
+    
+        return loss_edm, loss_ism
+
 #----------------------------------------------------------------------------

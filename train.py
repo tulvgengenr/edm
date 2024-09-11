@@ -45,7 +45,7 @@ def parse_int_list(s):
 @click.option('--data',          help='Path to the dataset', metavar='ZIP|DIR',                     type=str, required=True)
 @click.option('--cond',          help='Train class-conditional model', metavar='BOOL',              type=bool, default=False, show_default=True)
 @click.option('--arch',          help='Network architecture', metavar='ddpmpp|ncsnpp|adm',          type=click.Choice(['ddpmpp', 'ncsnpp', 'adm']), default='ddpmpp', show_default=True)
-@click.option('--precond',       help='Preconditioning & loss function', metavar='vp|ve|edm',       type=click.Choice(['vp', 've', 'edm']), default='edm', show_default=True)
+@click.option('--precond',       help='Preconditioning & loss function', metavar='vp|ve|edm',       type=click.Choice(['vp', 've', 'edm', 'edm_ism']), default='edm', show_default=True)
 
 # Hyperparameters.
 @click.option('--duration',      help='Training duration', metavar='MIMG',                          type=click.FloatRange(min=0, min_open=True), default=200, show_default=True)
@@ -77,6 +77,11 @@ def parse_int_list(s):
 @click.option('--resume',        help='Resume from previous training state', metavar='PT',          type=str)
 @click.option('-n', '--dry-run', help='Print training options and exit',                            is_flag=True)
 
+# ISM Loss
+@click.option('--ism_weight',    help='Weight of ISM loss', metavar='FLOAT',                                     type=click.FloatRange(min=0), default=0.0,  show_default=True)
+@click.option('--ism_rng_mean',  help='Mean of the randn noise for computing sigma of EDM in ISM loss',          type=click.FloatRange(),      default=-2.0, show_default=True)
+@click.option('--ism_dy',        help='Delta y of finite-difference for computing div',                          type=click.FloatRange(min=0), default=1e-5, show_default=True)
+
 def main(**kwargs):
     """Train diffusion-based generative model using the techniques described in the
     paper "Elucidating the Design Space of Diffusion-Based Generative Models".
@@ -97,7 +102,7 @@ def main(**kwargs):
     c.dataset_kwargs = dnnlib.EasyDict(class_name='training.dataset.ImageFolderDataset', path=opts.data, use_labels=opts.cond, xflip=opts.xflip, cache=opts.cache)
     c.data_loader_kwargs = dnnlib.EasyDict(pin_memory=True, num_workers=opts.workers, prefetch_factor=2)
     c.network_kwargs = dnnlib.EasyDict()
-    c.loss_kwargs = dnnlib.EasyDict()
+    c.loss_kwargs = dnnlib.EasyDict(ism_weight=opts.ism_weight, ism_rng_mean=opts.ism_rng_mean, ism_dy=opts.ism_dy)
     c.optimizer_kwargs = dnnlib.EasyDict(class_name='torch.optim.Adam', lr=opts.lr, betas=[0.9,0.999], eps=1e-8)
 
     # Validate dataset options.
@@ -130,10 +135,13 @@ def main(**kwargs):
     elif opts.precond == 've':
         c.network_kwargs.class_name = 'training.networks.VEPrecond'
         c.loss_kwargs.class_name = 'training.loss.VELoss'
-    else:
-        assert opts.precond == 'edm'
+    elif opts.precond == 'edm':
         c.network_kwargs.class_name = 'training.networks.EDMPrecond'
         c.loss_kwargs.class_name = 'training.loss.EDMLoss'
+    elif opts.precond == 'edm_ism':
+        c.network_kwargs.class_name = 'training.networks.EDMPrecond'
+        c.loss_kwargs.class_name = 'training.loss.EDMLoss_with_ISM'
+    
 
     # Network options.
     if opts.cbase is not None:
