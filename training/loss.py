@@ -116,7 +116,7 @@ class EDMLoss_with_ISM:
             loss_ism_first = torch.sum(((D_yn_ism - (y_ism)) ** 2))
 
             y_tilde = y_ism + self.ism_dy
-            D_yn_tilde = net(y_tilde + n_ism, sigma, labels, augment_labels=augment_labels)
+            D_yn_tilde = net(y_tilde + n_ism, sigma_ism, labels, augment_labels=augment_labels_ism)
             nabla_D_yn = (D_yn_tilde - D_yn) / self.ism_dy
             weight_ism_second = 2 * sigma_ism ** 2
 
