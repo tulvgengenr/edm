@@ -128,12 +128,10 @@ def training_loop(
                 images = images.to(device).to(torch.float32) / 127.5 - 1
                 labels = labels.to(device)
                 if loss_kwargs['ism_weight'] != 0.0:
-                    loss_ori, loss_ism = loss_fn(net=ddp, images=images, labels=labels, augment_pipe=augment_pipe)
+                    loss_ori, loss_ism_scalar = loss_fn(net=ddp, images=images, labels=labels, augment_pipe=augment_pipe)
                     training_stats.report('Loss/loss_ori', loss_ori)
-                    training_stats.report('Loss/loss_ism', loss_ism)
-                    loss_total = loss_ori + loss_ism
-                    training_stats.report('Loss/loss', loss_total)
-                    loss_total.sum().mul(loss_scaling / batch_gpu_total).backward()
+                    training_stats.report('Loss/loss_ism_scalar', loss_ism_scalar)
+                    loss = (loss_ori.sum().mul(loss_scaling / batch_gpu_total) + loss_ism_scalar.mul(loss_scaling)).backward()
                 else: 
                     loss = loss_fn(net=ddp, images=images, labels=labels, augment_pipe=augment_pipe)
                     training_stats.report('Loss/loss', loss)

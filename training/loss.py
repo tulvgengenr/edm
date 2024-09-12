@@ -96,7 +96,7 @@ class EDMLoss_with_ISM:
         weight = (sigma ** 2 + self.sigma_data ** 2) / (sigma * self.sigma_data) ** 2
         y, augment_labels = augment_pipe(images) if augment_pipe is not None else (images, None)
         n = torch.randn_like(y) * sigma
-        D_yn = net(y + n, sigma, labels, augment_labels=augment_labels)
+        D_yn, _ = net(y + n, sigma, labels, augment_labels=augment_labels)
 
         # compute loss_edm
         loss_edm = weight * ((D_yn - y) ** 2)
@@ -107,23 +107,21 @@ class EDMLoss_with_ISM:
             rnd_normal_ism = torch.randn([images.shape[0], 1, 1, 1], device=images.device) + self.ism_rng_mean
             sigma_ism = (rnd_normal_ism * self.P_std + self.P_mean).exp()
 
-            weight_ism = (sigma_ism ** 2 + self.sigma_data ** 2) / (sigma_ism * self.sigma_data) ** 2
+            # weight_ism = (sigma_ism ** 2 + self.sigma_data ** 2) / (sigma_ism * self.sigma_data) ** 2
             y_ism, augment_labels_ism = augment_pipe(images) if augment_pipe is not None else (images, None)
-
             n_ism = torch.randn_like(y_ism) * sigma_ism
-            D_yn_ism = net(y_ism + n_ism, sigma_ism, labels, augment_labels=augment_labels_ism)
-
-            loss_ism_first = torch.sum(((D_yn_ism - (y_ism)) ** 2))
+            D_yn_ism, epsilon_ism_pred = net(y_ism + n_ism, sigma_ism, labels, augment_labels=augment_labels_ism)
+            # loss_ism_first_reduced = torch.sum((D_yn_ism - (y_ism + n_ism))**2 / sigma_ism**2, dim=(1, 2, 3))
+            loss_ism_first_reduced = torch.sum(epsilon_ism_pred**2, dim=(1, 2, 3))
 
             y_tilde = y_ism + self.ism_dy
-            D_yn_tilde = net(y_tilde + n_ism, sigma_ism, labels, augment_labels=augment_labels_ism)
-            nabla_D_yn = (D_yn_tilde - D_yn) / self.ism_dy
-            weight_ism_second = 2 * sigma_ism ** 2
+            D_yn_tilde, epsilon_tilde_pred = net(y_tilde + n_ism, sigma_ism, labels, augment_labels=augment_labels_ism)
+            nabla_D_yn = (epsilon_tilde_pred - epsilon_ism_pred)  / self.ism_dy
+            loss_ism_second_reduced = torch.sum(2 * nabla_D_yn * sigma_ism, dim=(1, 2, 3))
 
-            loss_ism_second = weight_ism_second * nabla_D_yn
-
-            loss_ism = self.ism_weight * weight_ism * (loss_ism_first + loss_ism_second)
+            loss_ism_scale = 1.0 / torch.prod(torch.tensor(images.shape[1:]))
+            loss_ism_scaler =  torch.mean(self.ism_weight * loss_ism_scale *(loss_ism_first_reduced - loss_ism_second_reduced))
     
-        return loss_edm, loss_ism
+        return loss_edm, loss_ism_scaler
 
 #----------------------------------------------------------------------------

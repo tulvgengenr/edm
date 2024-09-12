@@ -665,7 +665,7 @@ class EDMPrecond(torch.nn.Module):
         F_x = self.model((c_in * x).to(dtype), c_noise.flatten(), class_labels=class_labels, **model_kwargs)
         assert F_x.dtype == dtype
         D_x = c_skip * x + c_out * F_x.to(torch.float32)
-        return D_x
+        return D_x, F_x
 
     def round_sigma(self, sigma):
         return torch.as_tensor(sigma)
