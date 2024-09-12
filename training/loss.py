@@ -120,7 +120,7 @@ class EDMLoss_with_ISM:
             loss_ism_second_reduced = torch.sum(2 * nabla_D_yn * sigma_ism, dim=(1, 2, 3))
 
             loss_ism_scale = 1.0 / torch.prod(torch.tensor(images.shape[1:]))
-            loss_ism_scaler =  torch.mean(self.ism_weight * loss_ism_scale *(loss_ism_first_reduced - loss_ism_second_reduced))
+            loss_ism_scaler = torch.mean(self.ism_weight * loss_ism_scale * (loss_ism_first_reduced + loss_ism_second_reduced))
     
         return loss_edm, loss_ism_scaler
 
