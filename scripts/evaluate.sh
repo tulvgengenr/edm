@@ -3,9 +3,9 @@
 # Licensed under the MIT License.
 ulimit -c unlimited
 
-[ -z "${ckpt}" ] && ckpt='/home/v-lijunzhe/blob/sfmexpresults/junzhe/psm/edm_test/baseline/00004-cifar10-32x32-cond-ddpmpp-edm-gpus8-batch512-fp32/network-snapshot-200000.pkl'
-[ -z "${sample_outdir}" ] && sample_outdir='edm/fid-tmp/baseline'
-[ -z "${ref_npz}" ] && ref_npz='edm/fid-refs/cifar10-32x32.npz'
+ckpt='/home/v-lijunzhe/blob/sfmexpresults/junzhe/psm/edm_test/transfer_with_ism_v0/00000-cifar10-32x32-cond-ddpmpp-edm_ism-gpus8-batch512-fp32/network-snapshot-040141.pkl'
+sample_outdir='edm/fid-tmp/finetune_40141'
+ref_npz='edm/fid-refs/cifar10-32x32.npz'
 
 mkdir -p $sample_outdir
 
