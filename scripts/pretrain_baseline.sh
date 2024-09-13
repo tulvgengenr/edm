@@ -3,8 +3,8 @@
 # Licensed under the MIT License.
 ulimit -c unlimited
 
-[ -z "${outdir}" ] && outdir='/sfm/sfmexpresults/junzhe/psm/edm_test/baseline'
-[ -z "${n_gpu}" ] && n_gpu=$(nvidia-smi -L | wc -l)
+outdir='/sfm/sfmexpresults/junzhe/psm/edm_test/baseline'
+n_gpu=$(nvidia-smi -L | wc -l)
 echo "n_gpu: ${n_gpu}"
 
 export MKL_SERVICE_FORCE_INTEL=1

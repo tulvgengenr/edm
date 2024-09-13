@@ -133,7 +133,7 @@ def training_loop(
                     training_stats.report('Loss/loss_ism_scalar', loss_ism_scalar)
                     loss = (loss_ori.sum().mul(loss_scaling / batch_gpu_total) + loss_ism_scalar.mul(loss_scaling)).backward()
                 else: 
-                    loss = loss_fn(net=ddp, images=images, labels=labels, augment_pipe=augment_pipe)
+                    loss, _ = loss_fn(net=ddp, images=images, labels=labels, augment_pipe=augment_pipe)
                     training_stats.report('Loss/loss', loss)
                     loss.sum().mul(loss_scaling / batch_gpu_total).backward()
 

@@ -102,7 +102,7 @@ class EDMLoss_with_ISM:
         loss_edm = weight * ((D_yn - y) ** 2)
 
         # compute loss_ism
-        loss_ism = torch.zeros_like(loss_edm)
+        loss_ism_scaler = torch.tensor([0.0], device=images.device)
         if self.ism_weight != 0.0:
             rnd_normal_ism = torch.randn([images.shape[0], 1, 1, 1], device=images.device) + self.ism_rng_mean
             sigma_ism = (rnd_normal_ism * self.P_std + self.P_mean).exp()
