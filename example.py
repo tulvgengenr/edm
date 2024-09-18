@@ -14,6 +14,7 @@ import numpy as np
 import torch
 import PIL.Image
 import dnnlib
+import click
 
 #----------------------------------------------------------------------------
 
@@ -58,13 +59,13 @@ def generate_image_grid(
         x_hat = x_cur + (t_hat ** 2 - t_cur ** 2).sqrt() * S_noise * torch.randn_like(x_cur)
 
         # Euler step.
-        denoised = net(x_hat, t_hat, class_labels).to(torch.float64)
+        denoised = net(x_hat, t_hat, class_labels)[0].to(torch.float64)
         d_cur = (x_hat - denoised) / t_hat
         x_next = x_hat + (t_next - t_hat) * d_cur
 
         # Apply 2nd order correction.
         if i < num_steps - 1:
-            denoised = net(x_next, t_next, class_labels).to(torch.float64)
+            denoised= net(x_next, t_next, class_labels)[0].to(torch.float64)
             d_prime = (x_next - denoised) / t_next
             x_next = x_hat + (t_next - t_hat) * (0.5 * d_cur + 0.5 * d_prime)
 
@@ -78,13 +79,21 @@ def generate_image_grid(
     print('Done.')
 
 #----------------------------------------------------------------------------
+@click.command()
+@click.option('--model', 'model', default='https://nvlabs-fi-cdn.nvidia.com/edm/pretrained/edm-cifar10-32x32-cond-vp.pkl', help='Model to use')
+@click.option('--num_steps', 'num_steps', default=18, help='Number of steps')
+@click.option('--output', 'output', default='output.png', help='Output file')
 
-def main():
-    model_root = 'https://nvlabs-fi-cdn.nvidia.com/edm/pretrained'
-    generate_image_grid(f'{model_root}/edm-cifar10-32x32-cond-vp.pkl',   'cifar10-32x32.png',  num_steps=18) # FID = 1.79, NFE = 35
-    generate_image_grid(f'{model_root}/edm-ffhq-64x64-uncond-vp.pkl',    'ffhq-64x64.png',     num_steps=40) # FID = 2.39, NFE = 79
-    generate_image_grid(f'{model_root}/edm-afhqv2-64x64-uncond-vp.pkl',  'afhqv2-64x64.png',   num_steps=40) # FID = 1.96, NFE = 79
-    generate_image_grid(f'{model_root}/edm-imagenet-64x64-cond-adm.pkl', 'imagenet-64x64.png', num_steps=256, S_churn=40, S_min=0.05, S_max=50, S_noise=1.003) # FID = 1.36, NFE = 511
+def main(**kwargs):
+    opts = dnnlib.EasyDict(kwargs)
+    generate_image_grid(f"{opts.model}", opts.output, num_steps=opts.num_steps)
+    
+
+    # model_root = 'https://nvlabs-fi-cdn.nvidia.com/edm/pretrained'
+    # generate_image_grid(f'{model_root}/edm-cifar10-32x32-cond-vp.pkl',   'cifar10-32x32.png',  num_steps=18) # FID = 1.79, NFE = 35
+    # generate_image_grid(f'{model_root}/edm-ffhq-64x64-uncond-vp.pkl',    'ffhq-64x64.png',     num_steps=40) # FID = 2.39, NFE = 79
+    # generate_image_grid(f'{model_root}/edm-afhqv2-64x64-uncond-vp.pkl',  'afhqv2-64x64.png',   num_steps=40) # FID = 1.96, NFE = 79
+    # generate_image_grid(f'{model_root}/edm-imagenet-64x64-cond-adm.pkl', 'imagenet-64x64.png', num_steps=256, S_churn=40, S_min=0.05, S_max=50, S_noise=1.003) # FID = 1.36, NFE = 511
 
 #----------------------------------------------------------------------------
 
