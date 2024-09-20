@@ -3,8 +3,8 @@
 # Licensed under the MIT License.
 ulimit -c unlimited
 
-ckpt='/home/v-lijunzhe/blob/sfmexpresults/junzhe/psm/edm_test/transfer_with_ism_v0/00001-cifar10-32x32-cond-ddpmpp-edm_ism-gpus8-batch512-fp32/network-snapshot-200000.pkl'
-sample_outdir='edm/fid-tmp/transfer_with_ism_weight_03_200000'
+ckpt='/home/v-lijunzhe/blob/sfmexpresults/junzhe/psm/edm_test/transfer_with_ism_v0/00003-cifar10-32x32-cond-ddpmpp-edm_ism-gpus8-batch512-fp32/network-snapshot-100352.pkl'
+sample_outdir='edm/fid-tmp/transfer_with_ism_weight_03_mean_1_100000'
 ref_npz='edm/fid-refs/cifar10-32x32.npz'
 
 mkdir -p $sample_outdir

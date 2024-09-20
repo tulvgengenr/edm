@@ -205,6 +205,8 @@ def training_loop(
                 stats_jsonl = open(os.path.join(run_dir, 'stats.jsonl'), 'at')
             stats_jsonl.write(json.dumps(dict(training_stats.default_collector.as_dict(), timestamp=time.time())) + '\n')
             stats_jsonl.flush()
+            stats_jsonl.close()
+            stats_jsonl = None
         dist.update_progress(cur_nimg // 1000, total_kimg)
 
         # Update state.
